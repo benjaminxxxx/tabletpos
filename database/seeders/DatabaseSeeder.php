@@ -14,15 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Crear roles y permisos primero
-        $this->call(PermissionSeeder::class);
-
-        // Crear usuario de prueba
-        $user = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-        ]);
-
-        // Asignar rol admin al usuario de prueba
-        $user->assignRole('admin');
+        $this->call(CategorySeeder::class);
+        $this->call(UserAccountSeeder::class);
     }
 }

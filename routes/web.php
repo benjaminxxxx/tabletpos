@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\RequireActiveAccount;
 use Illuminate\Support\Facades\Route;
@@ -20,16 +21,20 @@ Route::middleware(['auth'])->group(function () {
 // ─── Autenticado + cuenta activa en sesión ────────────────────────────────────
 Route::middleware(['auth', RequireActiveAccount::class])->group(function () {
 
-    Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
-    Route::get('/', fn () => view('dashboard'))->name('home');
+    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::get('/', fn() => view('dashboard'))->name('home');
 
     // Usuarios — solo owner/admin (Gate verifica en middleware Y en componente)
     Route::middleware(['can:manage-account-users'])->group(function () {
-        Route::get('/users',                [UserController::class, 'index'])->name('users.index');
-        Route::get('/users/create',         [UserController::class, 'create'])->name('users.create');
-        Route::get('/users/{userId}/edit',  [UserController::class, 'edit'])->name('users.edit');
-    });
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::get('/users/{userId}/edit', [UserController::class, 'edit'])->name('users.edit');
 
+        Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/register', [ProductController::class, 'register'])->name('products.register');
+    });
+    // Inventario
+   
     /*
     // POS
     Route::prefix('pos')->name('pos.')->group(function () {
@@ -37,11 +42,7 @@ Route::middleware(['auth', RequireActiveAccount::class])->group(function () {
         Route::get('rent', RentProduct::class)->name('rent');
     });
 
-    // Inventario
-    Route::prefix('inventory')->name('inventory.')->middleware('can:manage-products')->group(function () {
-        Route::get('catalog',        ProductCatalog::class)->name('catalog');
-        Route::get('batch-register', BatchProductRegistration::class)->name('batch-register');
-    });
+
 
     // Reportes
     Route::prefix('reports')->name('reports.')->middleware('can:view-reports')->group(function () {

@@ -33,6 +33,17 @@
                         {{ __('Agregar usuario') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
+                <flux:sidebar.group :heading="__('Producto')" class="grid">
+                    <flux:sidebar.item icon="users" :href="route('products.index')" :current="request()->routeIs('products.index')"
+                        wire:navigate>
+                        {{ __('Productos') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="user-plus" :href="route('products.register')"
+                        :current="request()->routeIs('products.register')" wire:navigate>
+                        {{ __('Registrar producto') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
             @endcan
         </flux:sidebar.nav>
 

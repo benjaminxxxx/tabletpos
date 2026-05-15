@@ -37,14 +37,4 @@ class Customer extends Model
         return $this->rentals()->where('status', 'returned')->count();
     }
 
-    public function isEligibleForLoyaltyDiscount(): bool
-    {
-        // Check if customer has rented any suit 4+ times
-        return $this->rentals()
-            ->whereHas('product', function ($query) {
-                $query->where('category_prefix', 'ZA'); // Example: ZA = suits
-            })
-            ->where('status', 'returned')
-            ->count() >= 4;
-    }
 }
