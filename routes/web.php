@@ -1,52 +1,58 @@
 <?php
 
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\RequireActiveAccount;
 use Illuminate\Support\Facades\Route;
-use App\Livewire\Pos\SellProduct;
-use App\Livewire\Pos\RentProduct;
-use App\Livewire\Dashboard\DailyReport;
-use App\Livewire\Dashboard\CashClose;
-use App\Livewire\Inventory\ProductCatalog;
-use App\Livewire\Inventory\BatchProductRegistration;
-use App\Livewire\Settings\UserManagement;
 
-// Rutas públicas
-Route::view('/', 'welcome')->name('home');
+// ─── Pública ──────────────────────────────────────────────────────────────────
 
-// Rutas protegidas (requieren autenticación)
-Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard
-    Route::view('dashboard', 'dashboard')->name('dashboard');
 
-    // POS - Vender (requiere permiso 'sell')
-    Route::group(['middleware' => 'can:sell', 'prefix' => 'pos', 'as' => 'pos.'], function () {
-        Route::get('sell', SellProduct::class)->name('sell');
+// ─── Autenticado, SIN cuenta activa requerida ─────────────────────────────────
+// Aquí vive el selector — es el paso previo a tener cuenta en sesión
+Route::middleware(['auth'])->group(function () {
+    Route::get('/accounts/select', [AccountController::class, 'select'])
+        ->name('accounts.select');
+    Route::post('/accounts/select', [AccountController::class, 'setActive'])
+        ->name('accounts.set-active');
+});
+
+// ─── Autenticado + cuenta activa en sesión ────────────────────────────────────
+Route::middleware(['auth', RequireActiveAccount::class])->group(function () {
+
+    Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
+    Route::get('/', fn () => view('dashboard'))->name('home');
+
+    // Usuarios — solo owner/admin (Gate verifica en middleware Y en componente)
+    Route::middleware(['can:manage-account-users'])->group(function () {
+        Route::get('/users',                [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create',         [UserController::class, 'create'])->name('users.create');
+        Route::get('/users/{userId}/edit',  [UserController::class, 'edit'])->name('users.edit');
     });
 
-    // Rentals (requiere permiso 'rent')
-    Route::group(['middleware' => 'can:rent', 'prefix' => 'pos', 'as' => 'pos.'], function () {
+    /*
+    // POS
+    Route::prefix('pos')->name('pos.')->group(function () {
+        Route::get('sell', SellProduct::class)->name('sell');
         Route::get('rent', RentProduct::class)->name('rent');
     });
 
-    // Inventario y Productos (requiere permiso 'manage-products')
-    Route::group(['middleware' => 'can:manage-products', 'prefix' => 'inventory', 'as' => 'inventory.'], function () {
-        Route::get('catalog', ProductCatalog::class)->name('catalog');
+    // Inventario
+    Route::prefix('inventory')->name('inventory.')->middleware('can:manage-products')->group(function () {
+        Route::get('catalog',        ProductCatalog::class)->name('catalog');
         Route::get('batch-register', BatchProductRegistration::class)->name('batch-register');
     });
 
-    // Reportes (requiere permiso 'view-reports')
-    Route::group(['middleware' => 'can:view-reports', 'prefix' => 'dashboard', 'as' => 'dashboard.'], function () {
-        Route::get('reports', DailyReport::class)->name('reports');
+    // Reportes
+    Route::prefix('reports')->name('reports.')->middleware('can:view-reports')->group(function () {
+        Route::get('daily', DailyReport::class)->name('daily');
     });
 
-    // Cierre de Caja (requiere permiso 'cash-close')
-    Route::group(['middleware' => 'can:cash-close', 'prefix' => 'dashboard', 'as' => 'dashboard.'], function () {
-        Route::get('cash-close', CashClose::class)->name('cash-close');
-    });
-
-    // Gestión de Usuarios - SOLO ADMIN (requiere permiso 'manage-users')
-    Route::group(['middleware' => 'can:manage-users', 'prefix' => 'settings', 'as' => 'settings.'], function () {
-        Route::get('users', UserManagement::class)->name('users');
-    });
+    // Cierre de caja
+    Route::get('cash-close', CashClose::class)
+        ->middleware('can:cash-close')
+        ->name('cash-close');
+    */
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

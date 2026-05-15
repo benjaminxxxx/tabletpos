@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'account_id', 'google_id', 'profile_photo_path'])]
+#[Fillable(['name', 'email', 'password', 'google_id', 'profile_photo_path'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -35,67 +36,81 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
-    /**
-     * Get the user's initials
-     */
     public function initials(): string
     {
         return Str::of($this->name)
             ->explode(' ')
             ->take(2)
-            ->map(fn ($word) => Str::substr($word, 0, 1))
+            ->map(fn($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
-
-    public function primaryAccount(): BelongsTo
+    /**
+     * La cuenta de la que este usuario es dueño (máximo una).
+     */
+    public function ownedAccount(): HasOne
     {
-        return $this->belongsTo(Account::class, 'account_id');
+        return $this->hasOne(Account::class, 'owner_id');
     }
 
-    public function accounts(): BelongsToMany
+    /**
+     * Cuentas donde participa como admin o seller.
+     */
+    public function memberAccounts(): BelongsToMany
     {
         return $this->belongsToMany(Account::class, 'account_users')
-            ->withPivot('role', 'is_blocked')
+            ->withPivot(['role', 'is_blocked'])
             ->withTimestamps();
     }
 
-    public function sales(): HasMany
+    /**
+     * TODAS las cuentas a las que tiene acceso:
+     * la propia (como owner) + las que fue invitado.
+     * Útil para el selector de cuenta en el login.
+     */
+    public function allAccounts()
     {
-        return $this->hasMany(Sale::class);
+        $owned = $this->ownedAccount ? collect([$this->ownedAccount]) : collect();
+        return $owned->merge($this->memberAccounts);
     }
 
-    public function rentals(): HasMany
+    // ─── Helpers ──────────────────────────────────────────────
+
+    public function isOwnerOf(Account $account): bool
     {
-        return $this->hasMany(Rental::class);
+        return $account->owner_id === $this->id;
     }
 
-    public function movements(): HasMany
+    public function isMemberOf(Account $account): bool
     {
-        return $this->hasMany(Movement::class);
+        return $this->memberAccounts()->where('account_id', $account->id)->exists();
     }
 
-    public function purchases(): HasMany
+    public function roleIn(Account $account): ?string
     {
-        return $this->hasMany(Purchase::class);
+        if ($this->isOwnerOf($account)) {
+            return 'owner';
+        }
+
+        $pivot = $this->memberAccounts()
+            ->where('account_id', $account->id)
+            ->first()?->pivot;
+
+        return $pivot?->role;
     }
 
-    public function cashCloses(): HasMany
+    public function isBlockedIn(Account $account): bool
     {
-        return $this->hasMany(CashClose::class);
-    }
+        if ($this->isOwnerOf($account)) {
+            return false; // el owner nunca puede ser bloqueado
+        }
 
-    public function getRoleInAccount($accountId): ?string
-    {
-        return $this->accounts()
-            ->where('account_id', $accountId)
-            ->first()?->pivot?->role;
-    }
-
-    public function isBlockedInAccount($accountId): bool
-    {
-        return (bool) $this->accounts()
-            ->where('account_id', $accountId)
+        return (bool) $this->memberAccounts()
+            ->where('account_id', $account->id)
             ->first()?->pivot?->is_blocked;
+    }
+
+    public function hasOwnerAccount(): bool
+    {
+        return $this->ownedAccount()->exists();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,52 +13,64 @@ class Account extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'description'];
+    protected $fillable = [
+        'name',
+        'description',
+        'owner_id',
+        'is_active',
+    ];
+    // ─── Relaciones ───────────────────────────────────────────
 
-    public function users(): BelongsToMany
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * Miembros invitados (admins y sellers).
+     * El owner NO aparece aquí.
+     */
+   
+    public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'account_users')
-            ->withPivot('role', 'is_blocked')
+            ->withPivot(['role', 'is_blocked']) // ← sin esto pivot->role es null
             ->withTimestamps();
     }
 
-    public function locations(): HasMany
+    public function admins(): BelongsToMany
     {
-        return $this->hasMany(Location::class);
+        return $this->members()->wherePivot('role', 'admin');
     }
 
-    public function products(): HasMany
+    public function sellers(): BelongsToMany
     {
-        return $this->hasMany(Product::class);
+        return $this->members()->wherePivot('role', 'seller');
     }
 
-    public function purchases(): HasMany
+    public function activeSellers(): BelongsToMany
     {
-        return $this->hasMany(Purchase::class);
+        return $this->sellers()->wherePivot('is_blocked', false);
     }
 
-    public function sales(): HasMany
+    // ─── Helpers ──────────────────────────────────────────────
+
+    /**
+     * Todos los usuarios con acceso: owner + miembros.
+     * Para listados de gestión.
+     */
+    public function allUsers()
     {
-        return $this->hasMany(Sale::class);
+        return $this->members->prepend($this->owner->setAttribute('pivot_role', 'owner'));
     }
 
-    public function rentals(): HasMany
+    public function hasMember(User $user): bool
     {
-        return $this->hasMany(Rental::class);
+        return $this->members()->where('user_id', $user->id)->exists();
     }
 
-    public function customers(): HasMany
+    public function isOwnedBy(User $user): bool
     {
-        return $this->hasMany(Customer::class);
-    }
-
-    public function movements(): HasMany
-    {
-        return $this->hasMany(Movement::class);
-    }
-
-    public function cashCloses(): HasMany
-    {
-        return $this->hasMany(CashClose::class, 'account_id');
+        return $this->owner_id === $user->id;
     }
 }
