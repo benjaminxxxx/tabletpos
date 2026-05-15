@@ -13,18 +13,35 @@ return new class extends Migration {
         Schema::create('media', function (Blueprint $table) {
             $table->id();
             $table->foreignId('account_id')->constrained('accounts')->onDelete('cascade');
+            $table->foreignId('uploaded_by')->nullable()->constrained('users')->onDelete('set null');
             $table->string('path');
-            $table->string('disk')->default('local'); // local, s3, etc
-            $table->string('type')->default('photo');  // photo, video, 3d_model
+            $table->string('path_thumb')->nullable();  // ~150px ancho
+            $table->string('path_full')->nullable();
+            $table->string('disk')->default('public');
+            $table->string('type')->default('photo');     // photo, video, 3d_model
             $table->string('mime_type')->nullable();
-            $table->unsignedBigInteger('size')->nullable(); // bytes
+            $table->unsignedBigInteger('size')->nullable();
             $table->string('original_name')->nullable();
-            $table->timestamps();
 
-            $table->index('account_id');
+            // Atributos para matching dinámico — sin FK, string libre
+            $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('color')->nullable();
+            $table->string('brand')->nullable();
+            $table->string('material')->nullable();
+            $table->string('gender')->nullable();         // MASCULINO, FEMENINO, UNISEX
+
+            // Aprobación — vendedores suben en pending, admin/owner aprueban
+            $table->string('status')->default('approved'); // approved, pending, rejected
+            $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('approved_at')->nullable();
+
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['account_id', 'status']);
+            $table->index(['account_id', 'category_id', 'color', 'brand']);
         });
 
-        // Pivot — un media puede estar en varios productos (galería compartida)
         Schema::create('product_media', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
@@ -37,9 +54,6 @@ return new class extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('product_media');

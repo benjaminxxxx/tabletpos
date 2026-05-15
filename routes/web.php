@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\RequireActiveAccount;
@@ -17,6 +18,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/accounts/select', [AccountController::class, 'setActive'])
         ->name('accounts.set-active');
 });
+
+Route::post('/media/upload', [MediaController::class, 'upload'])->name('media.upload');
+Route::post('/media/{media}/approve', [MediaController::class, 'approve'])
+    ->middleware('can:manage-account-users')
+    ->name('media.approve');
 
 // ─── Autenticado + cuenta activa en sesión ────────────────────────────────────
 Route::middleware(['auth', RequireActiveAccount::class])->group(function () {

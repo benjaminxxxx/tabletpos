@@ -16,13 +16,13 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->string('brand')->nullable();
             $table->string('origin')->nullable();
-            $table->enum('status', ['available', 'rented', 'laundry', 'maintenance', 'blocked'])->default('available');
-            $table->boolean('can_sell')->default(true);
-            $table->boolean('can_rent')->default(true);
+            $table->enum('status', ['EN STOCK', 'ALQUILADO', 'LAVANDERIA', 'MANTENIMIENTO', 'BLOQUEADO', 'PEDIDO'])->default('EN STOCK');//podre registrar producto como pedido para saber lo que falta comprar y hacer una lista de compra antes de adquirirlo para los casos de solicitudes especiales
             $table->integer('rent_count')->default(0);
             $table->integer('sale_count')->default(0);
 
             $table->decimal('purchase_price', 10, 2)->nullable();
+            $table->decimal('sale_price', 10, 2)->nullable();
+            $table->decimal('rent_price', 10, 2)->nullable();
             $table->date('purchase_date')->nullable();
             $table->string('color')->nullable();
             $table->string('size')->nullable();       // talla: S, M, L, XL, 38, etc
@@ -38,7 +38,7 @@ return new class extends Migration {
             $table->string('product_type')->default('sellable');
 
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
-            $table->enum('gender', ['m', 'f', 'u'])->default('u');
+            $table->enum('gender', ['MASCULINO', 'FEMENINO', 'UNISEX'])->nullable()->default('UNISEX'); // masculino, femenino, unisex, etc (para códigos inteligentes)
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->foreignId('updated_by')->nullable()->constrained('users');
             $table->foreignId('deleted_by')->nullable()->constrained('users');

@@ -31,12 +31,13 @@ class Product extends Model
         'product_type',  // sellable | rentable | stock_only | asset
         'status',
         'stock',
-        'can_sell',
-        'can_rent',
         'rent_count',
         'sale_count',
         'category_id',
-        'gender'
+        'gender',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -48,9 +49,9 @@ class Product extends Model
     public static function generateSmartCode(int $accountId, int $categoryId, string $gender): string
     {
         $category = Category::find($categoryId);
-        $prefix = ($category ? strtoupper($category->prefix) : 'XX') . strtolower($gender);
+        $prefix = ($category ? strtoupper($category->prefix) : 'XX') . strtoupper(substr($gender, 0, 1));
 
-        // Buscamos el último código que empiece con ese prefijo de 3 letras (ej: ZAM)
+        // 1. Buscamos el último código base directo en la BD
         $last = static::withTrashed()
             ->where('account_id', $accountId)
             ->where('public_code', 'like', $prefix . '%')
@@ -58,7 +59,20 @@ class Product extends Model
             ->value('public_code');
 
         $numeric = $last ? (int) substr($last, 3) : 0;
-        return $prefix . str_pad($numeric + 1, 4, '0', STR_PAD_LEFT);
+
+        // 2. Bucle de seguridad: si el código existe, sumamos 1 y volvemos a verificar
+        do {
+            $numeric++;
+            $code = $prefix . str_pad($numeric, 4, '0', STR_PAD_LEFT);
+
+            $codeExists = static::withTrashed()
+                ->where('account_id', $accountId)
+                ->where('public_code', $code)
+                ->exists();
+
+        } while ($codeExists); // Si existe, el bucle se repite incrementando $numeric
+
+        return $code;
     }
     // ─── Relaciones ───────────────────────────────────────────
 
@@ -72,13 +86,6 @@ class Product extends Model
         return $this->belongsTo(Location::class);
     }
 
-    public function media(): BelongsToMany
-    {
-        return $this->belongsToMany(Media::class, 'product_media')
-            ->withPivot('sort_order')
-            ->withTimestamps()
-            ->orderByPivot('sort_order');
-    }
 
     public function sales(): HasMany
     {
@@ -120,21 +127,32 @@ class Product extends Model
     {
         return $this->product_type === 'stock_only';
     }
-
-    // Genera el siguiente código disponible para un prefix dado
-    public static function nextCodeForPrefix(string $prefix, int $accountId): string
+    public function media(): BelongsToMany
     {
-        $last = static::withTrashed()
-            ->where('account_id', $accountId)
-            ->where('public_code', 'like', $prefix . '%')
-            ->orderByDesc('public_code')
-            ->value('public_code');
+        return $this->belongsToMany(Media::class, 'product_media')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
 
-        if (!$last) {
-            return $prefix . '0001';
-        }
+    // Media dinámica — sin FK, por atributos coincidentes
+    public function getDynamicMediaAttribute()
+    {
+        return Media::matchingProduct($this);
+    }
 
-        $numeric = (int) substr($last, strlen($prefix));
-        return $prefix . str_pad($numeric + 1, 4, '0', STR_PAD_LEFT);
+    // Toda la media visible: primero la vinculada, luego la dinámica sin duplicar
+    public function getAllVisibleMediaAttribute()
+    {
+        $linked = $this->media;
+        $dynamic = Media::matchingProduct($this)
+            ->reject(fn($m) => $linked->contains('id', $m->id));
+
+        return $linked->merge($dynamic);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 }

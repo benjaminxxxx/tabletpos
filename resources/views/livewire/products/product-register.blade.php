@@ -35,16 +35,7 @@
         </flux:button>
     </div>
 
-    {{-- Errores --}}
-    <template x-if="saveErrors.length > 0">
-        <flux:callout variant="danger" icon="exclamation-circle" class="mb-4">
-            <ul class="space-y-1">
-                <template x-for="err in saveErrors" :key="err">
-                    <li class="text-sm" x-text="err"></li>
-                </template>
-            </ul>
-        </flux:callout>
-    </template>
+    
 
 
 
@@ -108,21 +99,31 @@
                 data: 'gender',
                 title: 'Género *',
                 type: 'dropdown',
-                source: ['Hombre', 'Mujer', 'Unisex'],
+                strict: true,
+                source: ['MASCULINO', 'FEMENINO', 'UNISEX'],
             },
-            { data: 'brand', title: 'Marca', width: 100 },
-            { data: 'color', title: 'Color', width: 90 },
-            { data: 'size', title: 'Talla', width: 70 },
-            { data: 'material', title: 'Material', width: 100 },
-            { data: 'origin', title: 'Procedencia', width: 110 },
-            { data: 'location_name', title: 'Ubicación', width: 110 },
             { data: 'purchase_price', title: 'Precio compra', width: 110, type: 'numeric', numericFormat: { pattern: '0,0.00' } },
             {
                 data: 'product_type',
                 title: 'Tipo *',
                 type: 'dropdown',
-                source: ['Venta y Alquiler', 'Venta', 'General'],
+                strict: true,
+                source: ['VENTA Y ALQUILER', 'VENTA', 'GENERAL'],
             },
+            { data: 'brand', title: 'Marca', width: 100 },
+            {
+                data: 'status',
+                title: 'Estado *',
+                type: 'dropdown',
+                strict: true,
+                source: ['EN STOCK', 'ALQUILADO', 'LAVANDERIA', 'MANTENIMIENTO', 'BLOQUEADO', 'PEDIDO'],
+            },
+            { data: 'color', title: 'Color', width: 90 },
+            { data: 'size', title: 'Talla', width: 70 },
+            { data: 'material', title: 'Material', width: 100 },
+            { data: 'origin', title: 'Procedencia', width: 110 },
+            { data: 'location_name', title: 'Ubicación', width: 110 },
+
             { data: 'stock', title: 'Stock', width: 70, type: 'numeric' }
 
             ]
@@ -148,12 +149,7 @@
                 height: '100%',
                 afterChange: (changes) => {
                     if (!changes) return;
-                    // Si cambia el tipo, ajustar stock automáticamente
-                    changes.forEach(([row, prop, , newVal]) => {
-                        if (prop === 'product_type' && newVal !== 'stock_only') {
-                            this.hot.setDataAtRowProp(row, 'stock', 1, 'auto');
-                        }
-                    });
+
                 },
             });
 
@@ -182,14 +178,6 @@
             $wire.saveRows(rows);
         },
 
-        updateCountLabel() {
-            // Refrescar el conteo — Livewire re-renderizará la lista
-            $wire.$refresh();
-        },
-
-        loadDateProducts() {
-            $wire.$refresh();
-        }
     }));
 </script>
 @endscript

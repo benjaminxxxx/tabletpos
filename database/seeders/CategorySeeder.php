@@ -11,59 +11,78 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            // --- CABALLEROS ---
-            ['name' => 'Ternos y Trajes', 'prefix' => 'TE', 'children' => [
-                ['name' => 'Esmoquin (Smoking)', 'prefix' => 'SM'],
-                ['name' => 'Frac', 'prefix' => 'FR'],
-                ['name' => 'Levita', 'prefix' => 'LE'],
-                ['name' => 'Terno Clásico', 'prefix' => 'TC'],
-                ['name' => 'Blazer Gala', 'prefix' => 'BZ'],
-            ]],
-
-            // --- DAMAS ---
-            ['name' => 'Vestidos de Gala', 'prefix' => 'VE', 'children' => [
-                ['name' => 'Vestido de Noche (Largo)', 'prefix' => 'VL'],
-                ['name' => 'Vestido de Cóctel (Corto)', 'prefix' => 'VC'],
-                ['name' => 'Vestido de Novia', 'prefix' => 'VN'],
-                ['name' => 'Vestido de Quinceañera', 'prefix' => 'VQ'],
-                ['name' => 'Enterizos de Gala', 'prefix' => 'EG'],
-            ]],
-
-            // --- COMPLEMENTOS ---
-            ['name' => 'Prendas Superiores', 'prefix' => 'PS', 'children' => [
-                ['name' => 'Camisa de Gala', 'prefix' => 'CA'],
-                ['name' => 'Chaleco', 'prefix' => 'CH'],
-                ['name' => 'Corset', 'prefix' => 'CO'],
-                ['name' => 'Abrigo / Bolero', 'prefix' => 'AB'],
-            ]],
-
-            // --- CALZADO ---
-            ['name' => 'Calzado', 'prefix' => 'ZA', 'children' => [
-                ['name' => 'Zapato de Charol', 'prefix' => 'ZC'],
-                ['name' => 'Zapato de Cuero', 'prefix' => 'ZU'],
-                ['name' => 'Tacones / Sandalias Gala', 'prefix' => 'TA'],
-            ]],
-
-            // --- ACCESORIOS ---
-            ['name' => 'Accesorios', 'prefix' => 'AC', 'children' => [
-                ['name' => 'Corbata / Michi', 'prefix' => 'CM'],
-                ['name' => 'Correa / Fajín', 'prefix' => 'CF'],
-                ['name' => 'Joyas / Tiaras', 'prefix' => 'JO'],
-                ['name' => 'Carteras / Clutches', 'prefix' => 'CL'],
-                ['name' => 'Gemelos / Pisacorbata', 'prefix' => 'GE'],
-            ]],
+            [
+                'name' => 'TERNOS Y TRAJES',
+                'prefix' => 'TE',
+                'children' => [
+                    ['name' => 'ESMOQUIN (SMOKING)', 'prefix' => 'SM'],
+                    ['name' => 'FRAC', 'prefix' => 'FR'],
+                    ['name' => 'LEVITA', 'prefix' => 'LE'],
+                    ['name' => 'TERNO CLÁSICO', 'prefix' => 'TC'],
+                    ['name' => 'BLAZER GALA', 'prefix' => 'BZ'],
+                ]
+            ],
+            [
+                'name' => 'VESTIDOS DE GALA',
+                'prefix' => 'VE',
+                'children' => [
+                    ['name' => 'VESTIDO DE NOCHE (LARGO)', 'prefix' => 'VL'],
+                    ['name' => 'VESTIDO DE CÓCTEL (CORTO)', 'prefix' => 'VC'],
+                    ['name' => 'VESTIDO DE NOVIA', 'prefix' => 'VN'],
+                    ['name' => 'VESTIDO DE QUINCEAÑERA', 'prefix' => 'VQ'],
+                    ['name' => 'ENTERIZOS DE GALA', 'prefix' => 'EG'],
+                ]
+            ],
+            [
+                'name' => 'PRENDAS SUPERIORES',
+                'prefix' => 'PS',
+                'children' => [
+                    ['name' => 'CAMISA DE GALA', 'prefix' => 'CA'],
+                    ['name' => 'CHALECO', 'prefix' => 'CH'],
+                    ['name' => 'CORSET', 'prefix' => 'CO'],
+                    ['name' => 'ABRIGO / BOLERO', 'prefix' => 'AB'],
+                ]
+            ],
+            [
+                'name' => 'CALZADO',
+                'prefix' => 'ZA',
+                'children' => [
+                    ['name' => 'ZAPATO DE CHAROL', 'prefix' => 'ZC'],
+                    ['name' => 'ZAPATO DE CUERO', 'prefix' => 'ZU'],
+                    ['name' => 'TACONES / SANDALIAS GALA', 'prefix' => 'TA'],
+                ]
+            ],
+            [
+                'name' => 'ACCESORIOS',
+                'prefix' => 'AC',
+                'children' => [
+                    ['name' => 'CORBATA / MICHI', 'prefix' => 'CM'],
+                    ['name' => 'CORREA / FAJÍN', 'prefix' => 'CF'],
+                    ['name' => 'JOYAS / TIARAS', 'prefix' => 'JO'],
+                    ['name' => 'CARTERAS / CLUTCHES', 'prefix' => 'CL'],
+                    ['name' => 'GEMELOS / PISACORBATA', 'prefix' => 'GE'],
+                ]
+            ],
         ];
 
         foreach ($categories as $parentData) {
             $children = $parentData['children'] ?? [];
             unset($parentData['children']);
 
+            // is_global = true, account_id = null → visible para todos
+            $parentData['is_global'] = true;
+            $parentData['account_id'] = null;
+
             $parent = Category::create($parentData);
 
             foreach ($children as $childData) {
                 $childData['parent_id'] = $parent->id;
+                $childData['is_global'] = true;
+                $childData['account_id'] = null;
                 Category::create($childData);
             }
         }
+
+        $this->command->info('Categorías globales creadas: ' . Category::count());
     }
 }

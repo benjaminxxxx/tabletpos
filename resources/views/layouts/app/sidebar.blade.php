@@ -6,25 +6,19 @@
 </head>
 
 <body class="min-h-screen bg-white dark:bg-zinc-800">
-    <flux:sidebar sticky collapsible="mobile"
-        class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+    <flux:sidebar sticky collapsible class="bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700">
         <flux:sidebar.header>
-            <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
-            <flux:sidebar.collapse class="lg:hidden" />
+            <flux:sidebar.brand href="#" logo="https://fluxui.dev/img/demo/logo.png"
+                logo:dark="https://fluxui.dev/img/demo/dark-mode-logo.png" name="Acme Inc." />
+            <flux:sidebar.collapse
+                class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2" />
         </flux:sidebar.header>
-
         <flux:sidebar.nav>
-            <flux:sidebar.group :heading="__('Platform')" class="grid">
-                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-                    wire:navigate>
-                    {{ __('Dashboard') }}
-                </flux:sidebar.item>
-            </flux:sidebar.group>
-
+            <flux:sidebar.item icon="home" href="#" current>Home</flux:sidebar.item>
             @can('manage-account-users')
-                <flux:sidebar.group :heading="__('Equipo')" class="grid">
-                    <flux:sidebar.item icon="users" :href="route('users.index')" :current="request()->routeIs('users.index')"
-                        wire:navigate>
+                <flux:sidebar.group expandable icon="users" heading="Equipo" class="grid">
+                    <flux:sidebar.item icon="users" :href="route('users.index')"
+                        :current="request()->routeIs('users.index')" wire:navigate>
                         {{ __('Usuarios') }}
                     </flux:sidebar.item>
 
@@ -33,35 +27,40 @@
                         {{ __('Agregar usuario') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
-                <flux:sidebar.group :heading="__('Producto')" class="grid">
-                    <flux:sidebar.item icon="users" :href="route('products.index')" :current="request()->routeIs('products.index')"
-                        wire:navigate>
+                <flux:sidebar.group expandable icon="cube" heading="Producto" class="grid">
+                    <flux:sidebar.item icon="tag" :href="route('products.index')"
+                        :current="request()->routeIs('products.index')" wire:navigate>
                         {{ __('Productos') }}
                     </flux:sidebar.item>
 
-                    <flux:sidebar.item icon="user-plus" :href="route('products.register')"
+                    <flux:sidebar.item icon="plus-circle" :href="route('products.register')"
                         :current="request()->routeIs('products.register')" wire:navigate>
                         {{ __('Registrar producto') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             @endcan
         </flux:sidebar.nav>
-
-        <flux:spacer />
-
+        <flux:sidebar.spacer />
         <flux:sidebar.nav>
-            <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit"
-                target="_blank">
-                {{ __('Repository') }}
-            </flux:sidebar.item>
-
-            <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire"
-                target="_blank">
-                {{ __('Documentation') }}
-            </flux:sidebar.item>
+            <flux:sidebar.item icon="cog-6-tooth" href="#">Settings</flux:sidebar.item>
+            <flux:sidebar.item icon="information-circle" href="#">Help</flux:sidebar.item>
         </flux:sidebar.nav>
+        <flux:dropdown position="top" align="start" class="max-lg:hidden">
+            <flux:sidebar.profile :name="auth()->user()->name" />
+            <flux:menu class="w-48">
+                <flux:menu.item icon="user" :href="route('profile.edit')" wire:navigate>{{ __('Mi Perfil') }}
+                </flux:menu.item>
+                <flux:menu.separator />
 
-        <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
+                <form method="POST" action="{{ route('logout') }}" class="w-full">
+                    @csrf
+                    <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle"
+                        class="w-full text-left">
+                        {{ __('Cerrar sesión') }}
+                    </flux:menu.item>
+                </form>
+            </flux:menu>
+        </flux:dropdown>
     </flux:sidebar>
 
     <!-- Mobile User Menu -->
