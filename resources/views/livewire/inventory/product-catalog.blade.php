@@ -172,12 +172,183 @@
                     </div>
                 </div>
 
-                <button 
-                    wire:click="$set('selectedProduct', null)"
-                    class="w-full mt-4 px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg"
-                >
-                    Close
-                </button>
+                <!-- Action Buttons -->
+                <div class="flex gap-2 mt-6">
+                    @if($selectedProduct->can_sell)
+                        <button 
+                            wire:click="openSellModal"
+                            class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition"
+                        >
+                            Vender
+                        </button>
+                    @endif
+                    
+                    @if($selectedProduct->can_rent)
+                        <button 
+                            wire:click="openRentalModal"
+                            class="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition"
+                        >
+                            Alquilar
+                        </button>
+                    @endif
+                    
+                    <button 
+                        wire:click="$set('selectedProduct', null)"
+                        class="px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg"
+                    >
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- SELL MODAL -->
+    @if($showSellModal && $selectedProduct)
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Vender: {{ $selectedProduct->name }}</h3>
+                
+                <form wire:submit="addToCartSell" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Cantidad</label>
+                        <input type="number" wire:model="sellQuantity" min="1" max="{{ $selectedProduct->quantity_available }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        @error('sellQuantity') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                        <p class="text-xs text-gray-500 mt-1">Disponible: {{ $selectedProduct->quantity_available }}</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Precio Unitario</label>
+                        <input type="number" step="0.01" wire:model="sellPrice"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        @error('sellPrice') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <p class="text-sm text-gray-600">Subtotal:</p>
+                        <p class="text-2xl font-bold text-green-600">${{ number_format($sellQuantity * $sellPrice, 2) }}</p>
+                    </div>
+
+                    <div class="flex gap-2 pt-4">
+                        <button type="submit" class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition">
+                            Agregar al Carrito
+                        </button>
+                        <button type="button" wire:click="$set('showSellModal', false)" class="px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- RENTAL MODAL -->
+    @if($showRentalModal && $selectedProduct)
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 my-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Alquilar: {{ $selectedProduct->name }}</h3>
+                
+                <form wire:submit="addToCartRental" class="space-y-4">
+                    <!-- Customer Selection -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Cliente</label>
+                        <select wire:model="customerId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="">Seleccionar cliente</option>
+                            @foreach($this->getCustomers() as $customer)
+                                <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->dni }})</option>
+                            @endforeach
+                        </select>
+                        @error('customerId') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- DNI Number -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">DNI</label>
+                        <input type="text" wire:model="dniNumber" placeholder="Ej: 12345678"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        @error('dniNumber') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- DNI Photo (will be handled by file upload in real implementation) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Foto del DNI</label>
+                        <input type="text" wire:model="dniPhotoUrl" placeholder="URL o ruta de la foto"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-xs">
+                        @error('dniPhotoUrl') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Additional Photo (optional) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Foto Adicional (Opcional)</label>
+                        <input type="text" wire:model="additionalPhotoUrl" placeholder="URL o ruta"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-xs">
+                    </div>
+
+                    <!-- Quantity -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Cantidad</label>
+                        <input type="number" wire:model="rentalQuantity" min="1" max="{{ $selectedProduct->quantity_available }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        @error('rentalQuantity') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                        <p class="text-xs text-gray-500 mt-1">Disponible: {{ $selectedProduct->quantity_available }}</p>
+                    </div>
+
+                    <!-- Rental Price -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Precio de Alquiler</label>
+                        <input type="number" step="0.01" wire:model="rentalPrice"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        @error('rentalPrice') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Guarantee Amount -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Monto de Garantía (Opcional)</label>
+                        <input type="number" step="0.01" wire:model="guaranteeAmount"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+
+                    <!-- Rental Dates -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha Salida</label>
+                            <input type="date" wire:model="rentalStartDate"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            @error('rentalStartDate') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha Retorno</label>
+                            <input type="date" wire:model="rentalReturnDate"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            @error('rentalReturnDate') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Observations -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Observaciones</label>
+                        <textarea wire:model="observations" rows="2" placeholder="Notas adicionales"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <p class="text-sm text-gray-600">Subtotal Alquiler:</p>
+                        <p class="text-2xl font-bold text-purple-600">${{ number_format($rentalQuantity * $rentalPrice, 2) }}</p>
+                        @if($guaranteeAmount > 0)
+                            <p class="text-sm text-gray-600 mt-2">+ Garantía: ${{ number_format($guaranteeAmount, 2) }}</p>
+                        @endif
+                    </div>
+
+                    <div class="flex gap-2 pt-4">
+                        <button type="submit" class="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition">
+                            Agregar al Carrito
+                        </button>
+                        <button type="button" wire:click="$set('showRentalModal', false)" class="px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif
