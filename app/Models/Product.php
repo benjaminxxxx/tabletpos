@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Enums\ProductStatus;
 
 class Product extends Model
 {
@@ -26,11 +27,18 @@ class Product extends Model
         'can_rent',
         'rent_count',
         'sale_count',
+        'quantity_available',
+        'quantity_rented_out',
+        'quantity_sold_total',
     ];
 
     protected $casts = [
         'can_sell' => 'boolean',
         'can_rent' => 'boolean',
+        'quantity_available' => 'integer',
+        'quantity_rented_out' => 'integer',
+        'quantity_sold_total' => 'integer',
+        'status' => ProductStatus::class,
     ];
 
     public function account(): BelongsTo
@@ -48,9 +56,14 @@ class Product extends Model
         return $this->hasMany(ProductMedia::class)->orderBy('sort_order');
     }
 
-    public function sales(): HasMany
+    public function saleDetails(): HasMany
     {
-        return $this->hasMany(Sale::class);
+        return $this->hasMany(SaleDetail::class);
+    }
+
+    public function rentalDetails(): HasMany
+    {
+        return $this->hasMany(RentalDetail::class);
     }
 
     public function rentals(): HasMany
@@ -72,12 +85,42 @@ class Product extends Model
     public function getStatusColor(): string
     {
         return match($this->status) {
-            'available' => 'green',
-            'rented' => 'amber',
-            'blocked' => 'red',
-            'laundry' => 'blue',
-            'maintenance' => 'gray',
+            ProductStatus::DISPONIBLE => 'green',
+            ProductStatus::ALQUILADO => 'amber',
+            ProductStatus::BLOQUEADO => 'red',
+            ProductStatus::VENDIDO => 'blue',
+            ProductStatus::PERDIDO => 'gray',
             default => 'gray',
         };
+    }
+
+    public function reduceAvailableQuantity(int $quantity): void
+    {
+        $this->quantity_available -= $quantity;
+        $this->save();
+    }
+
+    public function increaseAvailableQuantity(int $quantity): void
+    {
+        $this->quantity_available += $quantity;
+        $this->save();
+    }
+
+    public function increaseRentedOut(int $quantity): void
+    {
+        $this->quantity_rented_out += $quantity;
+        $this->save();
+    }
+
+    public function decreaseRentedOut(int $quantity): void
+    {
+        $this->quantity_rented_out -= $quantity;
+        $this->save();
+    }
+
+    public function increaseSoldTotal(int $quantity): void
+    {
+        $this->quantity_sold_total += $quantity;
+        $this->save();
     }
 }
